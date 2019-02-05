@@ -18,7 +18,6 @@ so_version = ['0', '0', '0']
 
 add_project_arguments(
 	[
-		'-DWLR_SRC_DIR="@0@"'.format(meson.current_source_dir()),
 		'-DWLR_USE_UNSTABLE',
 
 		'-Wno-unused-parameter',
@@ -39,6 +38,29 @@ conf_data.set10('WLR_HAS_XCB_ICCCM', false)
 wlr_inc = include_directories('.', 'include')
 
 cc = meson.get_compiler('c')
+
+# Strip path prefixes from __FILE__, for added reproducibility and to limit log noise
+if cc.get_id() == 'gcc' and cc.version().version_compare('>=8.1.0')
+	r = run_command('python3', '-c',
+		'import os.path; print(os.path.join(os.path.relpath(\'@0@\', \'@1@\'),\'\'))'.format(meson.source_root(), meson.build_root())
+	)
+	relative_dir = r.stdout().strip()
+
+	add_project_arguments(
+		[
+			'-fmacro-prefix-map=@0@='.format(relative_dir),
+		],
+		language: 'c',
+	)
+else
+	# Fallback: stripping path prefixes at _runtime_. *shudders*
+	add_project_arguments(
+		[
+			'-DWLR_SRC_DIR="@0@"'.format(meson.current_source_dir()),
+		],
+		language: 'c',
+	)
+endif
 
 # Clang complains about some zeroed initializer lists (= {0}), even though they
 # are valid

@@ -50,7 +50,13 @@ enum wlr_log_importance wlr_log_get_verbosity(void);
 
 void _wlr_log(enum wlr_log_importance verbosity, const char *format, ...) _WLR_ATTRIB_PRINTF(2, 3);
 void _wlr_vlog(enum wlr_log_importance verbosity, const char *format, va_list args) _WLR_ATTRIB_PRINTF(2, 0);
+
+// If the compiler does not yet support -fmacro-prefix-map , fall back to runtime path stripping
+#ifdef WLR_SRC_DIR
 const char *_wlr_strip_path(const char *filepath);
+#else
+#define _wlr_strip_path(arg) (arg)
+#endif
 
 #define wlr_log(verb, fmt, ...) \
 	_wlr_log(verb, "[%s:%d] " fmt, _wlr_strip_path(__FILE__), __LINE__, ##__VA_ARGS__)

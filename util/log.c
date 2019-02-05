@@ -69,6 +69,7 @@ void _wlr_log(enum wlr_log_importance verbosity, const char *fmt, ...) {
 	va_end(args);
 }
 
+#ifdef WLR_SRC_DIR
 // strips the path prefix from filepath
 // will try to strip WLR_SRC_DIR as well as a relative src dir
 // e.g. '/src/build/wlroots/backend/wayland/backend.c' and
@@ -85,6 +86,7 @@ const char *_wlr_strip_path(const char *filepath) {
 	}
 	return filepath;
 }
+#endif
 
 enum wlr_log_importance wlr_log_get_verbosity(void) {
 	return log_importance;
