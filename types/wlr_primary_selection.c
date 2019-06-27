@@ -42,11 +42,23 @@ void wlr_primary_selection_source_send(
 
 
 void wlr_seat_request_set_primary_selection(struct wlr_seat *seat,
+		struct wl_client *client,
 		struct wlr_primary_selection_source *source, uint32_t serial) {
-	if (seat->primary_selection_source &&
-			seat->primary_selection_serial - serial < UINT32_MAX / 2) {
+	enum ValidationResult res = wlr_serial_validate(seat->serial_tracker,
+		client, serial);
+	if (res == SERIAL_INVALID) {
 		wlr_log(WLR_DEBUG, "Rejecting set_primary_selection request, "
-			"invalid serial (%"PRIu32" <= %"PRIu32")",
+			"serial value %"PRIu32" was never given to the client",
+			serial);
+		return;
+	} else if (res == SERIAL_OLD) {
+		wlr_log(WLR_DEBUG, "Beware, very old serial number %"PRIu32" in request, assuming valid",
+			serial);
+	}
+
+	if (seat->primary_selection_source && serial <= seat->primary_selection_serial) {
+		wlr_log(WLR_DEBUG, "Rejecting set_primary_selection request, "
+			"serial indicates superseded (%"PRIu32" <= %"PRIu32")",
 			serial, seat->primary_selection_serial);
 		return;
 	}

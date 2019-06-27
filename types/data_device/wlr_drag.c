@@ -70,8 +70,7 @@ static void drag_set_focus(struct wlr_drag *drag,
 	if (drag->source != NULL) {
 		drag->source->accepted = false;
 
-		uint32_t serial =
-			wl_display_next_serial(drag->seat_client->seat->display);
+		uint32_t serial = wlr_serial_next(drag->seat_client->seat->serial_tracker, drag->seat_client->client);
 
 		struct wl_resource *device_resource;
 		wl_resource_for_each(device_resource, &focus_client->data_devices) {

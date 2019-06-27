@@ -49,7 +49,8 @@ void wlr_primary_selection_source_send(
 	int fd);
 
 void wlr_seat_request_set_primary_selection(struct wlr_seat *seat,
-	struct wlr_primary_selection_source *source, uint32_t serial);
+	struct wl_client *client, struct wlr_primary_selection_source *source,
+	uint32_t serial);
 /**
  * Sets the current primary selection for the seat. NULL can be provided to
  * clear it. This removes the previous one if there was any. In case the

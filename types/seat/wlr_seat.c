@@ -158,6 +158,8 @@ void wlr_seat_destroy(struct wlr_seat *seat) {
 		return;
 	}
 
+	wlr_serial_tracker_destroy(seat->serial_tracker);
+
 	wlr_signal_emit_safe(&seat->events.destroy, seat);
 
 	wl_list_remove(&seat->display_destroy.link);
@@ -201,6 +203,11 @@ struct wlr_seat *wlr_seat_create(struct wl_display *display, const char *name) {
 	if (!seat) {
 		return NULL;
 	}
+
+	// TODO: client support is best done with single global serial tracker,
+	// (think wlr_display), or (with code changes) one specialized
+	// tracker or even serial number translation layer per client
+	seat->serial_tracker = create_wlr_serial_tracker(display);
 
 	// pointer state
 	seat->pointer_state.seat = seat;

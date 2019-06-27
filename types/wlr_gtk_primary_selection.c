@@ -217,7 +217,7 @@ static void device_handle_set_selection(struct wl_client *client,
 		source = &client_source->source;
 	}
 
-	wlr_seat_request_set_primary_selection(device->seat, source, serial);
+	wlr_seat_request_set_primary_selection(device->seat, client, source, serial);
 }
 
 static void device_handle_destroy(struct wl_client *client,

@@ -171,12 +171,13 @@ void wlr_data_device_manager_destroy(struct wlr_data_device_manager *manager);
  * Requests a selection to be set for the seat.
  */
 void wlr_seat_request_set_selection(struct wlr_seat *seat,
-	struct wlr_data_source *source, uint32_t serial);
+	struct wl_client *client, struct wlr_data_source *source,
+	uint32_t serial);
 
 /**
  * Sets the current selection for the seat. NULL can be provided to clear it.
  * This removes the previous one if there was any. In case the selection doesn't
- * come from a client, wl_display_next_serial() can be used to generate a
+ * come from a client, wlr_serial_next() can be used to generate a
  * serial.
  */
 void wlr_seat_set_selection(struct wlr_seat *seat,

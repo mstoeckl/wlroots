@@ -41,7 +41,7 @@ static void data_device_set_selection(struct wl_client *client,
 
 	struct wlr_data_source *wlr_source =
 		source != NULL ? &source->source : NULL;
-	wlr_seat_request_set_selection(seat_client->seat, wlr_source, serial);
+	wlr_seat_request_set_selection(seat_client->seat, client, wlr_source, serial);
 }
 
 static void data_device_start_drag(struct wl_client *client,
@@ -142,11 +142,24 @@ void seat_client_send_selection(struct wlr_seat_client *seat_client) {
 }
 
 void wlr_seat_request_set_selection(struct wlr_seat *seat,
-		struct wlr_data_source *source, uint32_t serial) {
-	if (seat->selection_source &&
-			seat->selection_serial - serial < UINT32_MAX / 2) {
-		wlr_log(WLR_DEBUG, "Rejecting set_selection request, invalid serial "
-			"(%"PRIu32" <= %"PRIu32")", serial, seat->selection_serial);
+		struct wl_client *client, struct wlr_data_source *source,
+		uint32_t serial) {
+	enum ValidationResult res = wlr_serial_validate(seat->serial_tracker,
+		client, serial);
+	if (res == SERIAL_INVALID) {
+		wlr_log(WLR_DEBUG, "Rejecting set_selection request, "
+			"serial value %"PRIu32" was never given to the client",
+			serial);
+		return;
+	} else if (res == SERIAL_OLD) {
+		wlr_log(WLR_DEBUG, "Beware, very old serial number %"PRIu32" in request, assuming valid",
+			serial);
+	}
+
+	if (seat->selection_source && seat->selection_serial - serial < UINT32_MAX / 2) {
+		wlr_log(WLR_DEBUG, "Rejecting set_selection request, "
+			"serial indicates superseded (%"PRIu32" <= %"PRIu32")",
+			serial, seat->selection_serial);
 		return;
 	}
 

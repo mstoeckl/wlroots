@@ -226,13 +226,13 @@ void xwm_selection_finish(struct wlr_xwm *xwm) {
 				data_source_is_xwayland(
 					xwm->seat->selection_source)) {
 			wlr_seat_set_selection(xwm->seat, NULL,
-				wl_display_next_serial(xwm->xwayland->wl_display));
+				wlr_serial_next(xwm->seat->serial_tracker, XWAYLAND_SERIAL_CLIENT));
 		}
 		if (xwm->seat->primary_selection_source &&
 				primary_selection_source_is_xwayland(
 					xwm->seat->primary_selection_source)) {
 			wlr_seat_set_primary_selection(xwm->seat, NULL,
-				wl_display_next_serial(xwm->xwayland->wl_display));
+				wlr_serial_next(xwm->seat->serial_tracker, XWAYLAND_SERIAL_CLIENT));
 		}
 		wlr_xwayland_set_seat(xwm->xwayland, NULL);
 	}
