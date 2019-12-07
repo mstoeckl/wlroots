@@ -87,7 +87,13 @@ struct wlr_output {
 	struct wl_display *display;
 
 	struct wl_global *global;
-	struct wl_list resources;
+	struct wl_list resources; // wl_output resources, for each client
+
+	/**
+	 * A list indicating all the wlr_surface objects for which the client
+	 * has been told that the surface is currently on the output
+	 */
+	struct wl_list visible_surfaces; // wlr_output_surface_tie::output_link
 
 	char name[24];
 	char make[56];

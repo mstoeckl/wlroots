@@ -50,6 +50,13 @@ struct wlr_surface_role {
 	void (*precommit)(struct wlr_surface *surface);
 };
 
+struct wlr_output_surface_tie {
+	struct wl_list surface_link;
+	struct wl_list output_link;
+	struct wlr_output *output;
+	struct wlr_surface *surface;
+};
+
 struct wlr_surface {
 	struct wl_resource *resource;
 	struct wlr_renderer *renderer;
@@ -94,6 +101,13 @@ struct wlr_surface {
 	 * the previous commit.
 	 */
 	struct wlr_surface_state current, pending, previous;
+
+	/**
+	* A list indicating all the outputs for which wl_surface.enter occured
+	* more recently than wl_surface.leave. It is used to check that these
+	* events are not called twice by accident.
+	*/
+	struct wl_list notified_outputs; // wlr_output_surface_tie::surface_link
 
 	const struct wlr_surface_role *role; // the lifetime-bound role or NULL
 	void *role_data; // role-specific data

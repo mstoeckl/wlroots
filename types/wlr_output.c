@@ -314,6 +314,7 @@ void wlr_output_init(struct wlr_output *output, struct wlr_backend *backend,
 	output->commit_seq = 0;
 	wl_list_init(&output->cursors);
 	wl_list_init(&output->resources);
+	wl_list_init(&output->visible_surfaces);
 	wl_signal_init(&output->events.frame);
 	wl_signal_init(&output->events.needs_frame);
 	wl_signal_init(&output->events.precommit);
@@ -347,6 +348,16 @@ void wlr_output_destroy(struct wlr_output *output) {
 
 	wl_list_remove(&output->display_destroy.link);
 	wlr_output_destroy_global(output);
+
+	// Remove the connection between visible surfaces and output, so that
+	// we do not leave any dangling pointers to the freed object. It is
+	// not necessary to send a wl_surface.leave event
+	struct wlr_output_surface_tie *tie, *tmp_tie;
+	wl_list_for_each_safe(tie, tmp_tie, &output->visible_surfaces, output_link) {
+		wl_list_remove(&tie->surface_link);
+		wl_list_remove(&tie->output_link);
+		free(tie);
+	}
 
 	wlr_signal_emit_safe(&output->events.destroy, output);
 

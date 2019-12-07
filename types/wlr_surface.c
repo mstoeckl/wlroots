@@ -568,6 +568,16 @@ static void surface_handle_resource_destroy(struct wl_resource *resource) {
 
 	wl_list_remove(wl_resource_get_link(surface->resource));
 
+	// Remove the connection between visible surfaces and output, so that
+	// we do not leave any dangling pointers to the freed object. It is
+	// not necessary to send a wl_surface.leave event
+	struct wlr_output_surface_tie *tie, *tmp_tie;
+	wl_list_for_each_safe(tie, tmp_tie, &surface->notified_outputs, surface_link) {
+		wl_list_remove(&tie->surface_link);
+		wl_list_remove(&tie->output_link);
+		free(tie);
+	}
+
 	wl_list_remove(&surface->renderer_destroy.link);
 	surface_state_finish(&surface->pending);
 	surface_state_finish(&surface->current);
@@ -619,6 +629,7 @@ struct wlr_surface *wlr_surface_create(struct wl_client *client,
 	wl_signal_init(&surface->events.new_subsurface);
 	wl_list_init(&surface->subsurfaces);
 	wl_list_init(&surface->subsurface_pending_list);
+	wl_list_init(&surface->notified_outputs);
 	pixman_region32_init(&surface->buffer_damage);
 	pixman_region32_init(&surface->opaque_region);
 	pixman_region32_init(&surface->input_region);
@@ -1031,6 +1042,33 @@ struct wlr_surface *wlr_surface_surface_at(struct wlr_surface *surface,
 void wlr_surface_send_enter(struct wlr_surface *surface,
 		struct wlr_output *output) {
 	struct wl_client *client = wl_resource_get_client(surface->resource);
+
+	// check that we have not already notified the client
+	bool found_it = false;
+	struct wlr_output_surface_tie *tie;
+	wl_list_for_each(tie, &surface->notified_outputs, surface_link) {
+		if (tie->output == output) {
+			found_it = true;
+		}
+	}
+
+	if (found_it) {
+		wlr_log(WLR_ERROR, "Excess call of wlr_surface_send_enter, already sent wl_surface.enter");
+		return;
+	} else {
+		struct wlr_output_surface_tie *li = calloc(1, sizeof(struct wlr_output_surface_tie));
+		if (!li) {
+			wl_client_post_no_memory(client);
+			return;
+		}
+		wl_list_init(&li->surface_link);
+		wl_list_init(&li->output_link);
+		li->surface = surface;
+		li->output = output;
+		wl_list_insert(&surface->notified_outputs, &li->surface_link);
+		wl_list_insert(&output->visible_surfaces, &li->output_link);
+	}
+
 	struct wl_resource *resource;
 	wl_resource_for_each(resource, &output->resources) {
 		if (client == wl_resource_get_client(resource)) {
@@ -1041,6 +1079,23 @@ void wlr_surface_send_enter(struct wlr_surface *surface,
 
 void wlr_surface_send_leave(struct wlr_surface *surface,
 		struct wlr_output *output) {
+	// check that we have not already notified the client
+	struct wlr_output_surface_tie *iter_tie, *tie = NULL;
+	wl_list_for_each(iter_tie, &surface->notified_outputs, surface_link) {
+		if (iter_tie->output == output) {
+			tie = iter_tie;
+		}
+	}
+
+	if (!tie) {
+		wlr_log(WLR_ERROR, "Excess call of wlr_surface_send_leave, no matching wlr_surface_send_enter");
+		return;
+	} else {
+		wl_list_remove(&tie->surface_link);
+		wl_list_remove(&tie->output_link);
+		free(tie);
+	}
+
 	struct wl_client *client = wl_resource_get_client(surface->resource);
 	struct wl_resource *resource;
 	wl_resource_for_each(resource, &output->resources) {
