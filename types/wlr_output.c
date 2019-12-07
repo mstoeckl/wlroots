@@ -802,6 +802,9 @@ static void output_cursor_reset(struct wlr_output_cursor *cursor) {
 	if (cursor->surface != NULL) {
 		wl_list_remove(&cursor->surface_commit.link);
 		wl_list_remove(&cursor->surface_destroy.link);
+		if (cursor->visible) {
+			wlr_surface_send_leave(cursor->surface, cursor->output);
+		}
 		cursor->surface = NULL;
 	}
 }
@@ -969,6 +972,9 @@ void wlr_output_cursor_set_surface(struct wlr_output_cursor *cursor,
 
 	output_cursor_reset(cursor);
 
+	if (cursor->visible && cursor->surface) {
+		wlr_surface_send_leave(cursor->surface, cursor->output);
+	}
 	cursor->surface = surface;
 	cursor->hotspot_x = hotspot_x;
 	cursor->hotspot_y = hotspot_y;
